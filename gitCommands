@@ -1,0 +1,5 @@
+git checkout -b record_voice
+git add
+git status
+git commit -m "Recording and playing voice"
+git push origin record_voice

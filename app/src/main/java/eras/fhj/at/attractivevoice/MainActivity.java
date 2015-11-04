@@ -1,18 +1,38 @@
 package eras.fhj.at.attractivevoice;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Point;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import java.io.IOException;
+
+import fftpack.RealDoubleFFT;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -20,6 +40,22 @@ public class MainActivity extends AppCompatActivity {
     Button play, stop, record;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
+
+    // START Sound Analyzer code block.
+    int frequency = 8000;
+    int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;// CHANNEL_CONFIGURATION_MONO;
+    int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+
+    AudioRecord audioRecord;
+    private RealDoubleFFT transformer;
+    int blockSize = 256;
+    Button startStopButton;
+    boolean started = false;
+    boolean CANCELLED_FLAG = false;
+
+    RecordAudio recordTask;
+    static AppCompatActivity mainActivity;
+    // END Sound Analyser Block
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
         stop.setEnabled(false);
         play.setEnabled(false);
         outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";
-        ;
 
         myAudioRecorder = new MediaRecorder();
         myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -119,5 +154,198 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+
+
+    // FTT ANALYSIS CODE START
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+
+    }
+
+    private class RecordAudio extends AsyncTask<Void, double[], Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+
+            int bufferSize = AudioRecord.getMinBufferSize(frequency,
+                    channelConfiguration, audioEncoding);
+            audioRecord = new AudioRecord(
+                    MediaRecorder.AudioSource.DEFAULT, frequency,
+                    channelConfiguration, audioEncoding, bufferSize);
+            int bufferReadResult;
+            short[] buffer = new short[blockSize];
+            double[] toTransform = new double[blockSize];
+            try {
+                audioRecord.startRecording();
+            } catch (IllegalStateException e) {
+                Log.e("Recording failed", e.toString());
+
+            }
+            while (started) {
+
+                if (isCancelled() || (CANCELLED_FLAG == true)) {
+
+                    started = false;
+                    //publishProgress(cancelledResult);
+                    Log.d("doInBackground", "Cancelling the RecordTask");
+                    break;
+                } else {
+                    bufferReadResult = audioRecord.read(buffer, 0, blockSize);
+
+                    for (int i = 0; i < blockSize && i < bufferReadResult; i++) {
+                        toTransform[i] = (double) buffer[i] / 32768.0; // signed 16 bit
+                    }
+
+                    transformer.ft(toTransform);
+
+                    publishProgress(toTransform);
+
+                }
+
+            }
+            return true;
+        }
+
+        @Override
+        protected void onProgressUpdate(double[]... progress) {
+            Log.e("RecordingProgress", "Displaying in progress");
+
+            Log.d("Test:", Integer.toString(progress[0].length));
+
+            int width = 1024;
+
+            if (width > 512) {
+                for (int i = 0; i < progress[0].length; i++) {
+                    int x = 2 * i;
+                    int downy = (int) (150 - (progress[0][i] * 10));
+                    int upy = 150;
+                    //canvasDisplaySpectrum.drawLine(x, downy, x, upy, paintSpectrumDisplay);
+                }
+
+                //imageViewDisplaySectrum.invalidate();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            super.onPostExecute(result);
+            try {
+                audioRecord.stop();
+            } catch (IllegalStateException e) {
+                Log.e("Stop failed", e.toString());
+
+            }
+
+            //canvasDisplaySpectrum.drawColor(Color.BLACK);
+            //imageViewDisplaySectrum.invalidate();
+
+        }
+    }
+
+    protected void onCancelled(Boolean result) {
+
+        try {
+            audioRecord.stop();
+        } catch (IllegalStateException e) {
+            Log.e("Stop failed", e.toString());
+
+        }
+           /* //recordTask.cancel(true);
+            Log.d("FFTSpectrumAnalyzer","onCancelled: New Screen");
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+*/
+    }
+
+    public void onClick(View v) {
+        if (started == true) {
+            //started = false;
+            CANCELLED_FLAG = true;
+            //recordTask.cancel(true);
+            try {
+                audioRecord.stop();
+            } catch (IllegalStateException e) {
+                Log.e("Stop failed", e.toString());
+
+            }
+            startStopButton.setText("Start");
+
+            //canvasDisplaySpectrum.drawColor(Color.BLACK);
+
+        } else {
+            started = true;
+            CANCELLED_FLAG = false;
+            startStopButton.setText("Stop");
+            recordTask = new RecordAudio();
+            recordTask.execute();
+        }
+
+    }
+
+    static AppCompatActivity getMainActivity() {
+
+        return mainActivity;
+    }
+
+    public void onStop() {
+        super.onStop();
+            /* try{
+                 audioRecord.stop();
+             }
+             catch(IllegalStateException e){
+                 Log.e("Stop failed", e.toString());
+
+             }*/
+        recordTask.cancel(true);
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
+
+    public void onStart() {
+        super.onStart();
+
+        transformer = new RealDoubleFFT(blockSize);
+        mainActivity = this;
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+
+        try {
+            audioRecord.stop();
+        } catch (IllegalStateException e) {
+            Log.e("Stop failed", e.toString());
+
+        }
+        recordTask.cancel(true);
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onDestroy() {
+        // TODO Auto-generated method stub
+        super.onDestroy();
+        try {
+            audioRecord.stop();
+        } catch (IllegalStateException e) {
+            Log.e("Stop failed", e.toString());
+
+        }
+        recordTask.cancel(true);
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 }

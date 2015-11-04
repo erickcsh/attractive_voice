@@ -45,7 +45,7 @@
         android:layout_alignRight="@+id/textView"
         android:layout_alignTop="@+id/button2"
         android:text="play" />
-    
+
 </RelativeLayout>
 
 
