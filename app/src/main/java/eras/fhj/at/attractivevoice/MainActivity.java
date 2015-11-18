@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 try {
+                /*try {
                     myAudioRecorder.prepare();
                     myAudioRecorder.start();
                 } catch (IllegalStateException e) {
@@ -89,6 +90,14 @@ public class MainActivity extends AppCompatActivity {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+                */
+
+                //<< FTT CODE
+                    started = true;
+                    CANCELLED_FLAG = false;
+                    recordTask = new RecordAudio();
+                    recordTask.execute();
+                //>> FTT CODE
 
                 record.setEnabled(false);
                 stop.setEnabled(true);
@@ -100,9 +109,22 @@ public class MainActivity extends AppCompatActivity {
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                myAudioRecorder.stop();
+               /* myAudioRecorder.stop();
                 myAudioRecorder.release();
-                myAudioRecorder = null;
+                myAudioRecorder = null; */
+
+                if (started == true) {
+                    //started = false;
+                    CANCELLED_FLAG = true;
+                    //recordTask.cancel(true);
+                    try{
+                        audioRecord.stop();
+                    }
+                    catch(IllegalStateException e){
+                        Log.e("Stop failed", e.toString());
+
+                    }
+                }
 
                 stop.setEnabled(false);
                 play.setEnabled(true);
@@ -165,10 +187,15 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    int backCount = 0;
     private class RecordAudio extends AsyncTask<Void, double[], Boolean> {
 
         @Override
         protected Boolean doInBackground(Void... params) {
+
+            Log.e("doInBackground", "backCount = " + backCount++);
+
+            //Toast.makeText(getApplicationContext(), "Analysing " + backCount++ , Toast.LENGTH_LONG).show();
 
             int bufferSize = AudioRecord.getMinBufferSize(frequency,
                     channelConfiguration, audioEncoding);
@@ -209,9 +236,10 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        int maxY = 0;
         @Override
         protected void onProgressUpdate(double[]... progress) {
-            Log.e("RecordingProgress", "Displaying in progress");
+            Log.e("RecordingProgress", "Displaying in progress Ashish");
 
             Log.d("Test:", Integer.toString(progress[0].length));
 
@@ -222,6 +250,12 @@ public class MainActivity extends AppCompatActivity {
                     int x = 2 * i;
                     int downy = (int) (150 - (progress[0][i] * 10));
                     int upy = 150;
+
+                    if(maxY < downy)
+                        maxY = downy;
+
+                    TextView freqVal = (TextView) findViewById(R.id.textView);
+                    freqVal.setText("X = " + x + " Y = " + downy + " Max Y = " + maxY);
                     //canvasDisplaySpectrum.drawLine(x, downy, x, upy, paintSpectrumDisplay);
                 }
 
@@ -273,14 +307,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("Stop failed", e.toString());
 
             }
-            startStopButton.setText("Start");
-
             //canvasDisplaySpectrum.drawColor(Color.BLACK);
 
         } else {
             started = true;
             CANCELLED_FLAG = false;
-            startStopButton.setText("Stop");
             recordTask = new RecordAudio();
             recordTask.execute();
         }
