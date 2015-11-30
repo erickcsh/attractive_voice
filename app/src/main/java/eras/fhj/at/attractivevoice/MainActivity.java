@@ -1,10 +1,9 @@
 package eras.fhj.at.attractivevoice;
 
-import android.media.MediaPlayer;
+import android.content.Intent;
 import android.media.MediaRecorder;
-import android.os.Environment;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -79,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) throws IllegalArgumentException, SecurityException, IllegalStateException {
-                MediaPlayer m = new MediaPlayer();
+                /*MediaPlayer m = new MediaPlayer();
 
                 try {
                     m.setDataSource(outputFile);
@@ -95,8 +94,13 @@ public class MainActivity extends AppCompatActivity {
 
                 m.start();
                 Toast.makeText(getApplicationContext(), "Playing audio", Toast.LENGTH_LONG).show();
+                */
             }
         });
+
+        Intent resultsIntent = new Intent(this, ResultsActivity.class);
+        resultsIntent.putExtra("resultValue", "6");
+        startActivity(resultsIntent);
     }
 
     @Override
