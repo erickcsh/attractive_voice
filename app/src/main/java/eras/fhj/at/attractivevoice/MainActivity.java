@@ -28,6 +28,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -49,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
     AudioRecord audioRecord;
     private RealDoubleFFT transformer;
     int blockSize = 256;
-    Button startStopButton;
     boolean started = false;
     boolean CANCELLED_FLAG = false;
 
@@ -79,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
         record.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
                 /*try {
                     myAudioRecorder.prepare();
                     myAudioRecorder.start();
