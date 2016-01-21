@@ -125,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
         RadioButton selectedRadio = (RadioButton) findViewById(selectedRadioId);
         AttractivenessScorer scorer = AttractivenessScorerBuilder.build(selectedRadio.getText().toString());
         int score = scorer.score(samples);
+        samples = new ArrayList<Integer>();
         Intent resultsIntent = new Intent(this, ResultsActivity.class);
         resultsIntent.putExtra("resultValue", score);
         startActivity(resultsIntent);
