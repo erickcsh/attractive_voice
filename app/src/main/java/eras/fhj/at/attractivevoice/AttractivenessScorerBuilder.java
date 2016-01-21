@@ -6,7 +6,7 @@ package eras.fhj.at.attractivevoice;
 public class AttractivenessScorerBuilder {
 
     public static AttractivenessScorer build(String genreValue) {
-        if(genreValue == "Female") {
+        if(genreValue.equals("Female")) {
             return new FemaleAttractivenessScorer();
         } else {
             return new MaleAttractivenessScorer();
