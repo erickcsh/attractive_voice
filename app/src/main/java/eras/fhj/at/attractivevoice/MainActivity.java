@@ -1,30 +1,18 @@
 package eras.fhj.at.attractivevoice;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Point;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
-import android.os.Environment;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -35,13 +23,11 @@ import java.io.IOException;
 
 import fftpack.RealDoubleFFT;
 
-
 public class MainActivity extends AppCompatActivity {
 
     Button play, stop, record;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
-
     // START Sound Analyzer code block.
     int frequency = 8000;
     int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;// CHANNEL_CONFIGURATION_MONO;
@@ -91,17 +77,20 @@ public class MainActivity extends AppCompatActivity {
                 }
                 */
 
-                //<< FTT CODE
+                    //<< FTT CODE
                     started = true;
                     CANCELLED_FLAG = false;
                     recordTask = new RecordAudio();
                     recordTask.execute();
-                //>> FTT CODE
+                    //>> FTT CODE
 
-                record.setEnabled(false);
-                stop.setEnabled(true);
+                    record.setEnabled(false);
+                    stop.setEnabled(true);
 
-                Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -129,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
                 play.setEnabled(true);
 
                 Toast.makeText(getApplicationContext(), "Audio recorded successfully", Toast.LENGTH_LONG).show();
+
+                Intent resultsIntent = new Intent(MainActivity.this, ResultsActivity.class);
+                resultsIntent.putExtra("resultValue", "6");
+                MainActivity.this.startActivity(resultsIntent);
             }
         });
 
@@ -136,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) throws IllegalArgumentException, SecurityException, IllegalStateException {
                 MediaPlayer m = new MediaPlayer();
+
 
                 try {
                     m.setDataSource(outputFile);
@@ -153,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Playing audio", Toast.LENGTH_LONG).show();
             }
         });
+
     }
 
     @Override
@@ -176,7 +171,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-
 
 
 
