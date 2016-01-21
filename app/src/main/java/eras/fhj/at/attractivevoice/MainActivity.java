@@ -1,24 +1,50 @@
 package eras.fhj.at.attractivevoice;
 
 import android.content.Intent;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
-import java.io.IOException;
+import java.util.ArrayList;
 
+import fftpack.RealDoubleFFT;
 
 public class MainActivity extends AppCompatActivity {
 
     Button play, stop, record;
+    RadioGroup genreRadio;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
+    // START Sound Analyzer code block.
+    int frequency = 8000;
+    int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;// CHANNEL_CONFIGURATION_MONO;
+    int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+
+    AudioRecord audioRecord;
+    private RealDoubleFFT transformer;
+    int blockSize = 256;
+    Button startStopButton;
+    boolean started = false;
+    boolean CANCELLED_FLAG = false;
+
+    RecordAudio recordTask;
+    ArrayList<Integer> samples;
+    static AppCompatActivity mainActivity;
+    // END Sound Analyser Block
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,13 +52,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         play = (Button) findViewById(R.id.button3);
-        stop = (Button) findViewById(R.id.button2);
         record = (Button) findViewById(R.id.button);
 
-        stop.setEnabled(false);
-        play.setEnabled(false);
+        genreRadio = (RadioGroup) findViewById(R.id.genreRadioGroup);
+
+        samples = new ArrayList<Integer>();
+
+        play.setEnabled(true);
         outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";
-        ;
 
         myAudioRecorder = new MediaRecorder();
         myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -43,85 +70,236 @@ public class MainActivity extends AppCompatActivity {
         record.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                    myAudioRecorder.prepare();
-                    myAudioRecorder.start();
-                } catch (IllegalStateException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-
-                record.setEnabled(false);
-                stop.setEnabled(true);
-
-                Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
-            }
-        });
-
-        stop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                myAudioRecorder.stop();
-                myAudioRecorder.release();
-                myAudioRecorder = null;
-
-                stop.setEnabled(false);
-                play.setEnabled(true);
-
-                Toast.makeText(getApplicationContext(), "Audio recorded successfully", Toast.LENGTH_LONG).show();
+                MainActivity.this.startRecord();
             }
         });
 
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) throws IllegalArgumentException, SecurityException, IllegalStateException {
-                /*MediaPlayer m = new MediaPlayer();
 
-                try {
-                    m.setDataSource(outputFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                try {
-                    m.prepare();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                m.start();
-                Toast.makeText(getApplicationContext(), "Playing audio", Toast.LENGTH_LONG).show();
-                */
             }
         });
 
+    }
+
+    public void startRecord() {
+        MainActivity self = this;
+        try {
+            //<< FTT CODE
+            started = true;
+            CANCELLED_FLAG = false;
+            recordTask = new RecordAudio();
+            recordTask.execute();
+            //>> FTT CODE
+
+            record.setEnabled(false);
+
+            Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                MainActivity.this.stopRecord();
+            }
+        }, 4000);
+    }
+
+    public void stopRecord() {
+        if (started == true) {
+            CANCELLED_FLAG = true;
+            try{
+                audioRecord.stop();
+            }
+            catch(IllegalStateException e){
+                Log.e("Stop failed", e.toString());
+
+            }
+        }
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                MainActivity.this.calculateResults();
+            }
+        }, 2000);
+
+        record.setEnabled(true);
+        play.setEnabled(true);
+
+        Toast.makeText(getApplicationContext(), "Audio recorded successfully. Calculating results", Toast.LENGTH_LONG).show();
+    }
+
+    public void calculateResults() {
+        int selectedRadioId = genreRadio.getCheckedRadioButtonId();
+        RadioButton selectedRadio = (RadioButton) findViewById(selectedRadioId);
+        AttractivenessScorer scorer = AttractivenessScorerBuilder.build(selectedRadio.getText().toString());
+        int score = scorer.score(samples);
         Intent resultsIntent = new Intent(this, ResultsActivity.class);
-        resultsIntent.putExtra("resultValue", "6");
+        resultsIntent.putExtra("resultValue", score);
         startActivity(resultsIntent);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
 
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    int backCount = 0;
+    private class RecordAudio extends AsyncTask<Void, double[], Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            int bufferSize = AudioRecord.getMinBufferSize(frequency,
+                    channelConfiguration, audioEncoding);
+            audioRecord = new AudioRecord(
+                    MediaRecorder.AudioSource.DEFAULT, frequency,
+                    channelConfiguration, audioEncoding, bufferSize);
+            int bufferReadResult;
+            short[] buffer = new short[blockSize];
+            double[] toTransform = new double[blockSize];
+            try {
+                audioRecord.startRecording();
+            } catch (IllegalStateException e) {
+                Log.e("Recording failed", e.toString());
+
+            }
+            while (started) {
+                if (isCancelled() || (CANCELLED_FLAG == true)) {
+                    started = false;
+                    Log.d("doInBackground", "Cancelling the RecordTask");
+                    break;
+                } else {
+                    bufferReadResult = audioRecord.read(buffer, 0, blockSize);
+
+                    for (int i = 0; i < blockSize && i < bufferReadResult; i++) {
+                        toTransform[i] = (double) buffer[i] / 32768.0; // signed 16 bit
+                    }
+
+                    transformer.ft(toTransform);
+                    publishProgress(toTransform);
+                }
+
+            }
+            return true;
+        }
+
+        int maxY = 0;
+        @Override
+        protected void onProgressUpdate(double[]... progress) {
+            for (int i = 0; i < progress[0].length; i++) {
+                int downy = (int) (150 - (progress[0][i] * 10));
+
+                if(maxY < downy)
+                    maxY = downy;
+
+                if(downy > 200) {
+                    samples.add(downy);
+                    samples.add(maxY);
+                }
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            super.onPostExecute(result);
+            try {
+                audioRecord.stop();
+            } catch (IllegalStateException e) {
+                Log.e("Stop failed", e.toString());
+
+            }
+        }
+    }
+
+    protected void onCancelled(Boolean result) {
+
+        try {
+            audioRecord.stop();
+        } catch (IllegalStateException e) {
+            Log.e("Stop failed", e.toString());
+
+        }
+    }
+
+    public void onClick(View v) {
+        if (started == true) {
+            CANCELLED_FLAG = true;
+            try {
+                audioRecord.stop();
+            } catch (IllegalStateException e) {
+                Log.e("Stop failed", e.toString());
+            }
+        } else {
+            started = true;
+            CANCELLED_FLAG = false;
+            recordTask = new RecordAudio();
+            recordTask.execute();
+        }
+
+    }
+
+    static AppCompatActivity getMainActivity() {
+
+        return mainActivity;
+    }
+
+    public void onStop() {
+        if(recordTask != null) {
+            recordTask.cancel(true);
+        }
+        super.onStop();
+    }
+
+    public void onStart() {
+        super.onStart();
+
+        transformer = new RealDoubleFFT(blockSize);
+        mainActivity = this;
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+
+        try {
+            if(audioRecord != null) {
+                audioRecord.stop();
+            }
+        } catch (IllegalStateException e) {
+            Log.e("Stop failed", e.toString());
+
+        }
+        if(recordTask != null) {
+            recordTask.cancel(true);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            if(audioRecord != null) {
+                audioRecord.stop();
+            }
+        } catch (IllegalStateException e) {
+            Log.e("Stop failed", e.toString());
+
+        }
+        if(recordTask != null) {
+            recordTask.cancel(true);
+        }
     }
 }
