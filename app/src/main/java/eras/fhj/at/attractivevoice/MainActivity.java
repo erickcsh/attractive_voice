@@ -25,7 +25,7 @@ import fftpack.RealDoubleFFT;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button play, stop, record;
+    Button record;
     RadioGroup genreRadio;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
@@ -51,14 +51,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        play = (Button) findViewById(R.id.button3);
         record = (Button) findViewById(R.id.button);
 
         genreRadio = (RadioGroup) findViewById(R.id.genreRadioGroup);
 
         samples = new ArrayList<Integer>();
 
-        play.setEnabled(true);
         outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";
 
         myAudioRecorder = new MediaRecorder();
@@ -73,14 +71,6 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.startRecord();
             }
         });
-
-        play.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) throws IllegalArgumentException, SecurityException, IllegalStateException {
-
-            }
-        });
-
     }
 
     public void startRecord() {
@@ -126,7 +116,6 @@ public class MainActivity extends AppCompatActivity {
         }, 2000);
 
         record.setEnabled(true);
-        play.setEnabled(true);
 
         Toast.makeText(getApplicationContext(), "Audio recorded successfully. Calculating results", Toast.LENGTH_LONG).show();
     }
@@ -136,9 +125,11 @@ public class MainActivity extends AppCompatActivity {
         RadioButton selectedRadio = (RadioButton) findViewById(selectedRadioId);
         AttractivenessScorer scorer = AttractivenessScorerBuilder.build(selectedRadio.getText().toString());
         int score = scorer.score(samples);
+
         Intent resultsIntent = new Intent(this, ResultsActivity.class);
         resultsIntent.putExtra("resultValue", score);
         startActivity(resultsIntent);
+
     }
 
     @Override
