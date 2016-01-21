@@ -8,6 +8,7 @@ import android.telephony.TelephonyManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 public class ResultsActivity extends ActionBarActivity {
@@ -39,6 +40,21 @@ public class ResultsActivity extends ActionBarActivity {
     private void setResultsText(int result) {
         String message = AttractivenessDetectorMessager.getMessageFor(result);
         this.resultsLabel.setText(message);
+        this.ShowHearts(result);
+    }
+
+    private void ShowHearts(int result) {
+        ImageView imageView = (ImageView)findViewById(R.id.hearts);
+        if(result >= 0 && result < 2)
+            imageView.setImageResource(R.drawable.one);
+        else if (result >= 2 && result < 4)
+            imageView.setImageResource(R.drawable.two);
+        else if (result >= 4 && result < 6)
+            imageView.setImageResource(R.drawable.three);
+        else if (result >= 6 && result < 8)
+            imageView.setImageResource(R.drawable.four);
+        else if (result >= 8 && result < 10)
+            imageView.setImageResource(R.drawable.five);
     }
 
     private void saveResultToAPI(int result) {

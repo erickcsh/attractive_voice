@@ -125,6 +125,9 @@ public class MainActivity extends AppCompatActivity {
     public void calculateResults() {
         int selectedRadioId = genreRadio.getCheckedRadioButtonId();
         RadioButton selectedRadio = (RadioButton) findViewById(selectedRadioId);
+        Log.d("INT RADIO ", Integer.toString(selectedRadioId));
+        Log.d("INT RADIO ", selectedRadio.getText().toString());
+
         AttractivenessScorer scorer = AttractivenessScorerBuilder.build(selectedRadio.getText().toString());
         int score = scorer.score(samples);
 

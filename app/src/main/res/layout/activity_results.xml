@@ -1,21 +1,22 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="eras.fhj.at.attractivevoice.ResultsActivity"
-    android:id="@+id/resultsLayout">
+    android:id="@+id/resultsLayout"
+    android:orientation="vertical">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="Your Results"
         android:id="@+id/resultMessageTittle"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="35dp"
+        android:layout_gravity="center"
+        android:textAlignment="center"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="32dp"
         android:typeface="normal"
         android:textStyle="bold"
         android:textSize="30dp" />
@@ -23,22 +24,34 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Large Text"
         android:id="@+id/resultsLabel"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
         android:textStyle="normal"
+        android:layout_marginBottom="62dp"
         android:textSize="34dp" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/resultsLabel"
+        android:id="@+id/hearts"
+        android:layout_marginBottom="32dp"
+        android:src="@drawable/one"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Try Again"
         android:onClick="retryClicked"
+        android:layout_gravity="center"
+
         android:id="@+id/buttonRetry"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="62dp" />
 
-</RelativeLayout>
+</LinearLayout>

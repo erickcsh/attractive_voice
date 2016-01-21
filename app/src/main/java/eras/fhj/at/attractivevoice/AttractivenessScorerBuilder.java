@@ -1,5 +1,7 @@
 package eras.fhj.at.attractivevoice;
 
+import android.util.Log;
+
 /**
  * Created by erick on 1/20/16.
  */
