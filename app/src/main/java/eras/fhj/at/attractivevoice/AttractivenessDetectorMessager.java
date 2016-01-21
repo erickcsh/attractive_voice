@@ -36,7 +36,7 @@ public class AttractivenessDetectorMessager {
                 resultMessage += "High enough to get out and get some numbers.";
                 break;
             case 9:
-                resultMessage += "Almost perfect. We oved your voice.";
+                resultMessage += "Almost perfect. We loved your voice.";
                 break;
             case 10:
                 resultMessage += "You sexy beast go conquer the world with your voice, it is yours.";
