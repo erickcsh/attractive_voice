@@ -9,7 +9,7 @@ public class AttractivenessDetectorMessager {
         String resultMessage = "You got a " + result + " out of 10. ";
         switch (result) {
             case -1:
-                resultMessage += "Please speak louder";
+                resultMessage = "Please speak louder";
                 break;
             case 1:
                 resultMessage += "Please stop talking. Sign language will sit better for you";
@@ -36,13 +36,13 @@ public class AttractivenessDetectorMessager {
                 resultMessage += "High enough to get out and get some numbers.";
                 break;
             case 9:
-                resultMessage += "Almost perfect. We oved your voice.";
+                resultMessage += "Almost perfect. We loved your voice.";
                 break;
             case 10:
                 resultMessage += "You sexy beast go conquer the world with your voice, it is yours.";
                 break;
             case 11:
-                resultMessage += "Please avoid screaming or speak softly";
+                resultMessage = "Please avoid screaming or speak softly";
                 break;
             default:
                 break;
