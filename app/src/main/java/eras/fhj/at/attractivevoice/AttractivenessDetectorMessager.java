@@ -5,10 +5,12 @@ package eras.fhj.at.attractivevoice;
  */
 public class AttractivenessDetectorMessager {
 
-    public static String getMessageFor(String result) {
-        int numericResult = Integer.parseInt(result);
+    public static String getMessageFor(int result) {
         String resultMessage = "You got a " + result + " out of 10. ";
-        switch (numericResult) {
+        switch (result) {
+            case -1:
+                resultMessage += "Please speak louder";
+                break;
             case 1:
                 resultMessage += "Please stop talking. Sign language will sit better for you";
                 break;
@@ -25,7 +27,7 @@ public class AttractivenessDetectorMessager {
                 resultMessage += "Right in the middle. Not that impressive.";
                 break;
             case 6:
-                resultMessage += "You are above the half, still not that attractive.";
+                resultMessage += "You are above the average, still not that attractive.";
                 break;
             case 7:
                 resultMessage += "Yeahhh not an A++ but still we approve your voice.";
@@ -38,6 +40,9 @@ public class AttractivenessDetectorMessager {
                 break;
             case 10:
                 resultMessage += "You sexy beast go conquer the world with your voice, it is yours.";
+                break;
+            case 11:
+                resultMessage += "Please avoid screaming or speak softly";
                 break;
             default:
                 break;

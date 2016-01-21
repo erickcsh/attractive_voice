@@ -7,6 +7,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.telephony.TelephonyManager;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
 public class ResultsActivity extends ActionBarActivity {
@@ -22,22 +23,29 @@ public class ResultsActivity extends ActionBarActivity {
         resultsLabel = (TextView) findViewById(R.id.resultsLabel);
 
         Intent resultsIntent = getIntent();
-        String result = resultsIntent.getStringExtra("resultValue");
+        int result = resultsIntent.getIntExtra("resultValue", 0);
 
         setResultsText(result);
-        saveResultToAPI(result);
+
+        if(result != -1 && result != 11) {
+            saveResultToAPI(result);
+        }
     }
 
-    private void setResultsText(String result) {
+    public void retryClicked(View v) {
+        this.onBackPressed();
+    }
+
+    private void setResultsText(int result) {
         String message = AttractivenessDetectorMessager.getMessageFor(result);
         this.resultsLabel.setText(message);
     }
 
-    private void saveResultToAPI(String result) {
+    private void saveResultToAPI(int result) {
         HTTPResultSaver helper = new HTTPResultSaver();
         TelephonyManager tManager = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
         String uid = tManager.getDeviceId();
-        helper.execute(API_URL, result, uid);
+        helper.execute(API_URL, Integer.toString(result), uid);
     }
 
     @Override

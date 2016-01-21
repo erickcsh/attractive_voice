@@ -3,27 +3,30 @@ package eras.fhj.at.attractivevoice;
 import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
-import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
-import java.io.IOException;
+import java.util.ArrayList;
 
 import fftpack.RealDoubleFFT;
 
 public class MainActivity extends AppCompatActivity {
 
     Button play, stop, record;
+    RadioGroup genreRadio;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
     // START Sound Analyzer code block.
@@ -39,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     boolean CANCELLED_FLAG = false;
 
     RecordAudio recordTask;
+    ArrayList<Integer> samples;
     static AppCompatActivity mainActivity;
     // END Sound Analyser Block
 
@@ -48,11 +52,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         play = (Button) findViewById(R.id.button3);
-        stop = (Button) findViewById(R.id.button2);
         record = (Button) findViewById(R.id.button);
 
-        stop.setEnabled(false);
-        play.setEnabled(false);
+        genreRadio = (RadioGroup) findViewById(R.id.genreRadioGroup);
+
+        samples = new ArrayList<Integer>();
+
+        play.setEnabled(true);
         outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";
 
         myAudioRecorder = new MediaRecorder();
@@ -64,120 +70,91 @@ public class MainActivity extends AppCompatActivity {
         record.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                /*try {
-                    myAudioRecorder.prepare();
-                    myAudioRecorder.start();
-                } catch (IllegalStateException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                */
-
-                    //<< FTT CODE
-                    started = true;
-                    CANCELLED_FLAG = false;
-                    recordTask = new RecordAudio();
-                    recordTask.execute();
-                    //>> FTT CODE
-
-                    record.setEnabled(false);
-                    stop.setEnabled(true);
-
-                    Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        stop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-               /* myAudioRecorder.stop();
-                myAudioRecorder.release();
-                myAudioRecorder = null; */
-
-                if (started == true) {
-                    //started = false;
-                    CANCELLED_FLAG = true;
-                    //recordTask.cancel(true);
-                    try{
-                        audioRecord.stop();
-                    }
-                    catch(IllegalStateException e){
-                        Log.e("Stop failed", e.toString());
-
-                    }
-                }
-
-                stop.setEnabled(false);
-                play.setEnabled(true);
-
-                Toast.makeText(getApplicationContext(), "Audio recorded successfully", Toast.LENGTH_LONG).show();
-
-                Intent resultsIntent = new Intent(MainActivity.this, ResultsActivity.class);
-                resultsIntent.putExtra("resultValue", "6");
-                MainActivity.this.startActivity(resultsIntent);
+                MainActivity.this.startRecord();
             }
         });
 
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) throws IllegalArgumentException, SecurityException, IllegalStateException {
-                MediaPlayer m = new MediaPlayer();
 
-
-                try {
-                    m.setDataSource(outputFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                try {
-                    m.prepare();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                m.start();
-                Toast.makeText(getApplicationContext(), "Playing audio", Toast.LENGTH_LONG).show();
             }
         });
 
     }
 
+    public void startRecord() {
+        MainActivity self = this;
+        try {
+            //<< FTT CODE
+            started = true;
+            CANCELLED_FLAG = false;
+            recordTask = new RecordAudio();
+            recordTask.execute();
+            //>> FTT CODE
+
+            record.setEnabled(false);
+
+            Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                MainActivity.this.stopRecord();
+            }
+        }, 4000);
+    }
+
+    public void stopRecord() {
+        if (started == true) {
+            CANCELLED_FLAG = true;
+            try{
+                audioRecord.stop();
+            }
+            catch(IllegalStateException e){
+                Log.e("Stop failed", e.toString());
+
+            }
+        }
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                MainActivity.this.calculateResults();
+            }
+        }, 2000);
+
+        record.setEnabled(true);
+        play.setEnabled(true);
+
+        Toast.makeText(getApplicationContext(), "Audio recorded successfully. Calculating results", Toast.LENGTH_LONG).show();
+    }
+
+    public void calculateResults() {
+        int selectedRadioId = genreRadio.getCheckedRadioButtonId();
+        RadioButton selectedRadio = (RadioButton) findViewById(selectedRadioId);
+        AttractivenessScorer scorer = AttractivenessScorerBuilder.build(selectedRadio.getText().toString());
+        int score = scorer.score(samples);
+        Intent resultsIntent = new Intent(this, ResultsActivity.class);
+        resultsIntent.putExtra("resultValue", score);
+        startActivity(resultsIntent);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
 
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-
-
-    // FTT ANALYSIS CODE START
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-
     }
 
     int backCount = 0;
@@ -185,11 +162,6 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected Boolean doInBackground(Void... params) {
-
-            Log.e("doInBackground", "backCount = " + backCount++);
-
-            //Toast.makeText(getApplicationContext(), "Analysing " + backCount++ , Toast.LENGTH_LONG).show();
-
             int bufferSize = AudioRecord.getMinBufferSize(frequency,
                     channelConfiguration, audioEncoding);
             audioRecord = new AudioRecord(
@@ -205,11 +177,8 @@ public class MainActivity extends AppCompatActivity {
 
             }
             while (started) {
-
                 if (isCancelled() || (CANCELLED_FLAG == true)) {
-
                     started = false;
-                    //publishProgress(cancelledResult);
                     Log.d("doInBackground", "Cancelling the RecordTask");
                     break;
                 } else {
@@ -220,9 +189,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     transformer.ft(toTransform);
-
                     publishProgress(toTransform);
-
                 }
 
             }
@@ -232,27 +199,16 @@ public class MainActivity extends AppCompatActivity {
         int maxY = 0;
         @Override
         protected void onProgressUpdate(double[]... progress) {
-            Log.e("RecordingProgress", "Displaying in progress Ashish");
+            for (int i = 0; i < progress[0].length; i++) {
+                int downy = (int) (150 - (progress[0][i] * 10));
 
-            Log.d("Test:", Integer.toString(progress[0].length));
+                if(maxY < downy)
+                    maxY = downy;
 
-            int width = 1024;
-
-            if (width > 512) {
-                for (int i = 0; i < progress[0].length; i++) {
-                    int x = 2 * i;
-                    int downy = (int) (150 - (progress[0][i] * 10));
-                    int upy = 150;
-
-                    if(maxY < downy)
-                        maxY = downy;
-
-                    TextView freqVal = (TextView) findViewById(R.id.textView);
-                    freqVal.setText("X = " + x + " Y = " + downy + " Max Y = " + maxY);
-                    //canvasDisplaySpectrum.drawLine(x, downy, x, upy, paintSpectrumDisplay);
+                if(downy > 200) {
+                    samples.add(downy);
+                    samples.add(maxY);
                 }
-
-                //imageViewDisplaySectrum.invalidate();
             }
         }
 
@@ -265,10 +221,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("Stop failed", e.toString());
 
             }
-
-            //canvasDisplaySpectrum.drawColor(Color.BLACK);
-            //imageViewDisplaySectrum.invalidate();
-
         }
     }
 
@@ -280,28 +232,16 @@ public class MainActivity extends AppCompatActivity {
             Log.e("Stop failed", e.toString());
 
         }
-           /* //recordTask.cancel(true);
-            Log.d("FFTSpectrumAnalyzer","onCancelled: New Screen");
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_HOME);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-*/
     }
 
     public void onClick(View v) {
         if (started == true) {
-            //started = false;
             CANCELLED_FLAG = true;
-            //recordTask.cancel(true);
             try {
                 audioRecord.stop();
             } catch (IllegalStateException e) {
                 Log.e("Stop failed", e.toString());
-
             }
-            //canvasDisplaySpectrum.drawColor(Color.BLACK);
-
         } else {
             started = true;
             CANCELLED_FLAG = false;
@@ -317,19 +257,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onStop() {
+        if(recordTask != null) {
+            recordTask.cancel(true);
+        }
         super.onStop();
-            /* try{
-                 audioRecord.stop();
-             }
-             catch(IllegalStateException e){
-                 Log.e("Stop failed", e.toString());
-
-             }*/
-        recordTask.cancel(true);
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
     }
 
     public void onStart() {
@@ -344,32 +275,31 @@ public class MainActivity extends AppCompatActivity {
         super.onBackPressed();
 
         try {
-            audioRecord.stop();
+            if(audioRecord != null) {
+                audioRecord.stop();
+            }
         } catch (IllegalStateException e) {
             Log.e("Stop failed", e.toString());
 
         }
-        recordTask.cancel(true);
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        if(recordTask != null) {
+            recordTask.cancel(true);
+        }
     }
 
     @Override
     protected void onDestroy() {
-        // TODO Auto-generated method stub
         super.onDestroy();
         try {
-            audioRecord.stop();
+            if(audioRecord != null) {
+                audioRecord.stop();
+            }
         } catch (IllegalStateException e) {
             Log.e("Stop failed", e.toString());
 
         }
-        recordTask.cancel(true);
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        if(recordTask != null) {
+            recordTask.cancel(true);
+        }
     }
 }
