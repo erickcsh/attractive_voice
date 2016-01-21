@@ -1,7 +1,5 @@
 package eras.fhj.at.attractivevoice;
 
-import android.util.Log;
-
 import java.util.ArrayList;
 
 /**
@@ -20,7 +18,6 @@ public abstract class AttractivenessScorer {
             acc += samples.get(i);
         }
         int average = (int) acc/samples.size();
-        Log.d("ERICK: ", Integer.toString(average));
         return average;
     }
 }
